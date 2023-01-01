@@ -19,4 +19,3 @@ shuttle-secrets = "0.8.0"
 tracing = "0.1.37"
 
 dotenv = "0.15.0"
-tokio = { version = "1.23.0", features = ["macros", "rt-multi-thread"] }
