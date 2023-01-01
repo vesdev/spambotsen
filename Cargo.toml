@@ -17,5 +17,3 @@ serenity = { version = "0.11.5", default-features = false, features = [
 ] }
 shuttle-secrets = "0.8.0"
 tracing = "0.1.37"
-
-dotenv = "0.15.0"
