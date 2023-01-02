@@ -1230,6 +1230,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "shuttle-static-folder"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7514bca7dca0ad4cdd181e9a4fb5c2c3402cde9a20516a750a272bca936ac577"
+dependencies = [
+ "async-trait",
+ "shuttle-service",
+ "tokio",
+]
+
+[[package]]
 name = "slab"
 version = "0.4.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1264,6 +1275,7 @@ dependencies = [
  "serenity",
  "shuttle-secrets",
  "shuttle-service",
+ "shuttle-static-folder",
  "tracing",
 ]
 

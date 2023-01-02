@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{path::PathBuf, sync::Arc};
 
 use anyhow::anyhow;
 use forsen_lines::ForsenLines;
@@ -55,6 +55,7 @@ impl EventHandler for Bot {
 
 #[shuttle_service::main]
 async fn serenity(
+    #[shuttle_static_folder::StaticFolder] static_folder: PathBuf,
     #[shuttle_secrets::Secrets] secret_store: SecretStore,
 ) -> shuttle_service::ShuttleSerenity {
     // Get the discord token set in `Secrets.toml`
@@ -74,7 +75,9 @@ async fn serenity(
 
     {
         let mut data = client.data.write().await;
-        data.insert::<PepePains>(Arc::new(ForsenLines::new()));
+        data.insert::<PepePains>(Arc::new(ForsenLines::new(
+            static_folder.with_file_name("forsen_lines.csv"),
+        )));
     }
 
     Ok(client)

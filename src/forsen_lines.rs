@@ -1,9 +1,12 @@
 use csv::Reader;
 use rand::{rngs::ThreadRng, seq::SliceRandom, thread_rng};
-use std::{error::Error, path::Path};
+use std::{
+    error::Error,
+    path::{Path, PathBuf},
+};
 
-fn parse_lines(pepepains: &mut ForsenLines) -> Result<(), Box<dyn Error>> {
-    let mut rdr = Reader::from_path("forsen_lines.csv")?;
+fn parse_lines(path: PathBuf, pepepains: &mut ForsenLines) -> Result<(), Box<dyn Error>> {
+    let mut rdr = Reader::from_path(path)?;
     for result in rdr.records() {
         let record = result?;
 
@@ -29,9 +32,9 @@ pub struct ForsenLines {
 }
 
 impl ForsenLines {
-    pub fn new() -> Self {
+    pub fn new(path: PathBuf) -> Self {
         let mut result = Self { lines: Vec::new() };
-        parse_lines(&mut result).expect("Error parsing csv");
+        parse_lines(path, &mut result).expect("Error parsing csv");
         result
     }
 
@@ -42,16 +45,5 @@ impl ForsenLines {
             .unwrap()
             .0
             .clone()
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::forsen_lines::ForsenLines;
-
-    #[test]
-    fn random_line() {
-        let mut pains = ForsenLines::new();
-        println!("'{}'", pains.get_random())
     }
 }
