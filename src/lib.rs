@@ -1,10 +1,21 @@
+use std::sync::Arc;
+
 use anyhow::anyhow;
+use forsen_lines::ForsenLines;
 use serenity::async_trait;
 use serenity::model::channel::Message;
 use serenity::model::gateway::Ready;
 use serenity::prelude::*;
 use shuttle_secrets::SecretStore;
 use tracing::{error, info};
+
+mod forsen_lines;
+
+struct PepePains;
+
+impl TypeMapKey for PepePains {
+    type Value = Arc<ForsenLines>;
+}
 
 struct Bot;
 
@@ -17,6 +28,21 @@ impl EventHandler for Bot {
 
         if msg.content.contains("forsen") {
             if let Err(e) = msg.channel_id.say(&ctx.http, "forsen").await {
+                error!("Error sending message: {:?}", e);
+            }
+        }
+
+        if msg.content.contains(":Painsge:") {
+            let line = {
+                let data_read = ctx.data.read().await;
+                data_read
+                    .get::<PepePains>()
+                    .expect("Expected PepePains")
+                    .clone()
+            }
+            .get_random();
+
+            if let Err(e) = msg.channel_id.say(&ctx.http, line).await {
                 error!("Error sending message: {:?}", e);
             }
         }
@@ -45,6 +71,11 @@ async fn serenity(
         .event_handler(Bot)
         .await
         .expect("Err creating client");
+
+    {
+        let mut data = client.data.write().await;
+        data.insert::<PepePains>(Arc::new(ForsenLines::new()));
+    }
 
     Ok(client)
 }
