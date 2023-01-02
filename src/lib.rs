@@ -55,7 +55,7 @@ impl EventHandler for Bot {
 
 #[shuttle_service::main]
 async fn serenity(
-    #[shuttle_static_folder::StaticFolder] static_folder: PathBuf,
+    #[shuttle_static_folder::StaticFolder(folder = "static")] static_folder: PathBuf,
     #[shuttle_secrets::Secrets] secret_store: SecretStore,
 ) -> shuttle_service::ShuttleSerenity {
     // Get the discord token set in `Secrets.toml`
@@ -76,7 +76,7 @@ async fn serenity(
     {
         let mut data = client.data.write().await;
         data.insert::<PepePains>(Arc::new(ForsenLines::new(
-            static_folder.with_file_name("forsen_lines.csv"),
+            static_folder.join("forsen_lines.csv"),
         )));
     }
 
