@@ -1,22 +1,17 @@
 use csv::Reader;
-use rand::{
-    rngs::ThreadRng, seq::SliceRandom, thread_rng,
-};
-use std::{
-    error::Error,
-    path::{Path, PathBuf},
-};
+use rand::{seq::SliceRandom, thread_rng};
+use std::{error::Error, path::PathBuf};
 
 fn parse_lines(
     path: PathBuf,
-    pepepains: &mut ForsenLines,
+    forsen_lines: &mut ForsenLines,
 ) -> Result<(), Box<dyn Error>> {
     let mut rdr = Reader::from_path(path)?;
     for result in rdr.records() {
         let record = result?;
 
         if let Some(line) = record.get(1) {
-            pepepains.lines.push((
+            forsen_lines.lines.push((
                 line.trim().to_string(),
                 match record.get(4) {
                     Some("Very rare") => 1,
