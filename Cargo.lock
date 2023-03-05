@@ -643,6 +643,31 @@ dependencies = [
 ]
 
 [[package]]
+name = "headers"
+version = "0.3.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f3e372db8e5c0d213e0cd0b9be18be2aca3d44cf2fe30a9d46a65581cd454584"
+dependencies = [
+ "base64 0.13.1",
+ "bitflags",
+ "bytes",
+ "headers-core",
+ "http",
+ "httpdate",
+ "mime",
+ "sha1",
+]
+
+[[package]]
+name = "headers-core"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e7f66481bfee273957b1f20485a4ff3362987f85b2c236580d81b4eb7a326429"
+dependencies = [
+ "http",
+]
+
+[[package]]
 name = "heck"
 version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1130,6 +1155,26 @@ name = "percent-encoding"
 version = "2.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "478c572c3d73181ff3c2539045f6eb99e5491218eae919370993b890cdbdd98e"
+
+[[package]]
+name = "pin-project"
+version = "1.0.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ad29a609b6bcd67fee905812e544992d216af9d755757c05ed2d0e15a74c6ecc"
+dependencies = [
+ "pin-project-internal",
+]
+
+[[package]]
+name = "pin-project-internal"
+version = "1.0.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "069bdb1e05adc7a8990dce9cc75370895fbe4e3d58b9b73bf1aee56359344a55"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
 
 [[package]]
 name = "pin-project-lite"
@@ -1620,13 +1665,30 @@ dependencies = [
 ]
 
 [[package]]
-name = "shuttle-secrets"
-version = "0.9.0"
+name = "shuttle-common"
+version = "0.11.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "72fd463f83ca83a5b6b1aaa101aeecd91837e2537fc7b60c3b95cc9c0275acea"
+checksum = "4bff54889167075a0866629bc1aa68f27f60b720638d73d98b6c736dc130ad7b"
+dependencies = [
+ "chrono",
+ "headers",
+ "once_cell",
+ "pin-project",
+ "rustrict",
+ "serde",
+ "strum",
+ "tracing",
+ "uuid",
+]
+
+[[package]]
+name = "shuttle-secrets"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8ca583db7b0db5bf6f478a0a7263c265eb9734d47e9128cca81b6b2ca448ffbc"
 dependencies = [
  "async-trait",
- "shuttle-service",
+ "shuttle-service 0.11.0",
  "tokio",
 ]
 
@@ -1646,7 +1708,30 @@ dependencies = [
  "serde_json",
  "serenity",
  "shuttle-codegen",
- "shuttle-common",
+ "shuttle-common 0.9.0",
+ "strfmt",
+ "thiserror",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+ "uuid",
+]
+
+[[package]]
+name = "shuttle-service"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5ed02802808015ea2a4ae3e4a9d0192ebaefdacf212a05eae6aa65121e9f57a2"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "cargo_metadata",
+ "chrono",
+ "crossbeam-channel",
+ "futures",
+ "pipe",
+ "serde_json",
+ "shuttle-common 0.11.2",
  "strfmt",
  "thiserror",
  "tokio",
@@ -1657,12 +1742,12 @@ dependencies = [
 
 [[package]]
 name = "shuttle-static-folder"
-version = "0.9.0"
+version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e1e866fdfa2d63033c0cf1bca9a27e98eb2c984eba9fe78a39d249fc7f9c9faf"
+checksum = "5971649531450dcb920b1cf07b1bf2cc2f2bf659bda53f88b78bdc08a00229f7"
 dependencies = [
  "async-trait",
- "shuttle-service",
+ "shuttle-service 0.11.0",
  "tokio",
 ]
 
@@ -1701,7 +1786,7 @@ dependencies = [
  "serde",
  "serenity",
  "shuttle-secrets",
- "shuttle-service",
+ "shuttle-service 0.9.0",
  "shuttle-static-folder",
  "sqlx",
  "tracing",
