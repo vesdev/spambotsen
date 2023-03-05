@@ -1639,29 +1639,14 @@ dependencies = [
 
 [[package]]
 name = "shuttle-codegen"
-version = "0.9.0"
+version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "66ae5889c55fbd5aaa51b8ee5ed979c028d13ff5e092ec94b7dd5242150b0234"
+checksum = "2814be527dddb99eb25b6ec03e2b9f1ba0cfa09c0c1c6a71252eb437b98a49f1"
 dependencies = [
  "proc-macro-error",
  "proc-macro2",
  "quote",
  "syn",
-]
-
-[[package]]
-name = "shuttle-common"
-version = "0.9.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "419c6ffbe9a898157eadfb436e25e102170c3105b0d8991a660e3272f7e1aa09"
-dependencies = [
- "chrono",
- "once_cell",
- "rustrict",
- "serde",
- "strum",
- "tracing",
- "uuid",
 ]
 
 [[package]]
@@ -1688,33 +1673,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8ca583db7b0db5bf6f478a0a7263c265eb9734d47e9128cca81b6b2ca448ffbc"
 dependencies = [
  "async-trait",
- "shuttle-service 0.11.0",
+ "shuttle-service",
  "tokio",
-]
-
-[[package]]
-name = "shuttle-service"
-version = "0.9.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ea92a1dbdf1be762ef60d923fff1a866d21df56427b94a617a9a0a75f60b7e16"
-dependencies = [
- "anyhow",
- "async-trait",
- "cargo_metadata",
- "chrono",
- "crossbeam-channel",
- "futures",
- "pipe",
- "serde_json",
- "serenity",
- "shuttle-codegen",
- "shuttle-common 0.9.0",
- "strfmt",
- "thiserror",
- "tokio",
- "tracing",
- "tracing-subscriber",
- "uuid",
 ]
 
 [[package]]
@@ -1731,7 +1691,9 @@ dependencies = [
  "futures",
  "pipe",
  "serde_json",
- "shuttle-common 0.11.2",
+ "serenity",
+ "shuttle-codegen",
+ "shuttle-common",
  "strfmt",
  "thiserror",
  "tokio",
@@ -1747,7 +1709,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5971649531450dcb920b1cf07b1bf2cc2f2bf659bda53f88b78bdc08a00229f7"
 dependencies = [
  "async-trait",
- "shuttle-service 0.11.0",
+ "shuttle-service",
  "tokio",
 ]
 
@@ -1786,7 +1748,7 @@ dependencies = [
  "serde",
  "serenity",
  "shuttle-secrets",
- "shuttle-service 0.9.0",
+ "shuttle-service",
  "shuttle-static-folder",
  "sqlx",
  "tracing",
