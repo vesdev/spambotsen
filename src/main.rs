@@ -91,7 +91,7 @@ async fn poise(
                         static_folder.join("forsen_lines.csv"),
                     )),
                     config: toml::from_str(
-                        std::fs::read_to_string("./config.toml")
+                        std::fs::read_to_string(static_folder.join("config.toml"))
                             .expect("config.toml not found")
                             .as_str(),
                     )
