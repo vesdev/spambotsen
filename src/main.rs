@@ -1,115 +1,107 @@
 use std::{path::PathBuf, sync::Arc};
 
-use anyhow::anyhow;
+use anyhow::Context as _;
+use common::*;
 use forsen_lines::ForsenLines;
-use serenity::model::channel::Message;
-use serenity::model::gateway::Ready;
-use serenity::model::prelude::command::Command;
-use serenity::model::prelude::interaction::{Interaction, InteractionResponseType};
-use serenity::prelude::*;
-use serenity::{async_trait, model::prelude::GuildId};
+use poise::serenity_prelude::{self as serenity, ArgumentConvert};
+
+use shuttle_poise::ShuttlePoise;
 use shuttle_secrets::SecretStore;
-use tracing::{error, info};
 
 mod commands;
+mod common;
 mod forsen_lines;
 
-use commands::channel_id::*;
-struct PepePains;
+async fn event_event_handler(
+    ctx: &serenity::Context,
+    event: &poise::Event<'_>,
+    _framework: poise::FrameworkContext<'_, Data, Error>,
+    user_data: &Data,
+) -> Result<(), Error> {
+    if let poise::Event::Message { new_message } = event {
+        let msg = new_message;
 
-impl TypeMapKey for PepePains {
-    type Value = Arc<ForsenLines>;
-}
-
-struct Bot;
-
-#[async_trait]
-impl EventHandler for Bot {
-    async fn message(&self, ctx: Context, msg: Message) {
         if msg.author.bot {
-            return;
+            return Ok(());
         }
 
         if msg.content.to_lowercase().contains("forsen") {
-            if let Err(e) = msg.channel_id.say(&ctx.http, "forsen").await {
-                error!("Error sending message: {:?}", e);
-            }
+            msg.channel_id.say(&ctx.http, "forsen").await?;
         }
 
         if msg.content.contains(":Painsge:") {
-            let line = {
-                let data_read = ctx.data.read().await;
-                data_read
-                    .get::<PepePains>()
-                    .expect("Expected PepePains")
-                    .clone()
-            }
-            .get_random();
+            let line = user_data.forsen_lines.get_random();
+            msg.channel_id.say(&ctx.http, line).await?;
+        }
 
-            if let Err(e) = msg.channel_id.say(&ctx.http, line).await {
-                error!("Error sending message: {:?}", e);
-            }
+        if msg.content.contains("ok") {
+            msg.react(
+                ctx,
+                poise::serenity_prelude::ReactionType::Custom {
+                    animated: false,
+                    id: serenity::EmojiId(user_data.config.ok_emote_id),
+                    name: Some("monkahmm".to_string()),
+                },
+            )
+            .await?;
+        }
+
+        if msg.content.contains("hmm") {
+            msg.react(
+                ctx,
+                poise::serenity_prelude::ReactionType::Custom {
+                    animated: false,
+                    id: serenity::EmojiId(user_data.config.hmm_emote_id),
+                    name: Some("monkahmm".to_string()),
+                },
+            )
+            .await?;
         }
     }
 
-    async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
-        if let Interaction::ApplicationCommand(command) = interaction {
-            let content = match command.data.name.as_str() {
-                "clear-commands" => {
-                    commands::clear_commands::run(&command.data.options, &ctx).await
-                }
-                _ => "not implemented :(".to_string(),
-            };
-
-            if let Err(why) = command
-                .create_interaction_response(&ctx.http, |response| {
-                    response
-                        .kind(InteractionResponseType::ChannelMessageWithSource)
-                        .interaction_response_data(|message| message.content(content))
-                })
-                .await
-            {
-                println!("Cannot respond to slash command: {}", why);
-            }
-        }
-    }
-
-    async fn ready(&self, ctx: Context, ready: Ready) {
-        info!("{} is connected!", ready.user.name);
-
-        let guild_command = Command::create_global_application_command(&ctx.http, |command| {
-            commands::channel_id::register(command)
-        })
-        .await;
-    }
+    Ok(())
 }
 
 #[shuttle_runtime::main]
-async fn serenity(
+async fn poise(
     #[shuttle_static_folder::StaticFolder(folder = "static")] static_folder: PathBuf,
     #[shuttle_secrets::Secrets] secret_store: SecretStore,
-) -> shuttle_serenity::ShuttleSerenity {
-    // Get the discord token set in `Secrets.toml`
-    let token = if let Some(token) = secret_store.get("DISCORD_TOKEN") {
-        token
-    } else {
-        return Err(anyhow!("'DISCORD_TOKEN' was not found").into());
-    };
+) -> ShuttlePoise<Data, Error> {
+    let discord_token = secret_store
+        .get("DISCORD_TOKEN")
+        .context("'DISCORD_TOKEN' was not found")?;
 
-    // Set gateway intents, which decides what events the bot will be notified about
-    let intents = GatewayIntents::GUILD_MESSAGES | GatewayIntents::MESSAGE_CONTENT;
-
-    let client = Client::builder(&token, intents)
-        .event_handler(Bot)
+    let framework = poise::Framework::builder()
+        .options(poise::FrameworkOptions {
+            commands: vec![commands::channel_id()],
+            event_handler: |ctx, event, framework, user_data| {
+                Box::pin(event_event_handler(ctx, event, framework, user_data))
+            },
+            ..Default::default()
+        })
+        .token(discord_token)
+        .intents(
+            serenity::GatewayIntents::GUILD_MESSAGES | serenity::GatewayIntents::MESSAGE_CONTENT,
+        )
+        .setup(|ctx, _ready, framework| {
+            Box::pin(async move {
+                poise::builtins::register_globally(ctx, &framework.options().commands).await?;
+                Ok(Data {
+                    forsen_lines: Arc::new(ForsenLines::new(
+                        static_folder.join("forsen_lines.csv"),
+                    )),
+                    config: toml::from_str(
+                        std::fs::read_to_string("./config.toml")
+                            .expect("config.toml not found")
+                            .as_str(),
+                    )
+                    .unwrap(),
+                })
+            })
+        })
+        .build()
         .await
-        .expect("Err creating client");
+        .map_err(shuttle_runtime::CustomError::new)?;
 
-    {
-        let mut data = client.data.write().await;
-        data.insert::<PepePains>(Arc::new(ForsenLines::new(
-            static_folder.join("forsen_lines.csv"),
-        )));
-    }
-
-    Ok(client.into())
+    Ok(framework.into())
 }
