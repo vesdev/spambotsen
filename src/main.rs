@@ -34,7 +34,9 @@ async fn event_event_handler(
             msg.channel_id.say(&ctx.http, line).await?;
         }
 
-        if msg_lowercase.contains(" ok ")
+        if msg_lowercase == "ok"
+            || msg_lowercase == "okay"
+            || msg_lowercase.contains(" ok ")
             || msg_lowercase.contains(":okay:")
             || msg_lowercase.contains(" okay ")
         {
