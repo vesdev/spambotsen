@@ -24,8 +24,8 @@ async fn event_event_handler(
         if msg.author.bot {
             return Ok(());
         }
-
-        if msg.content.to_lowercase().contains("forsen") {
+        let msg_lowercase = msg.content.to_lowercase();
+        if msg_lowercase.contains("forsen") {
             msg.channel_id.say(&ctx.http, "forsen").await?;
         }
 
@@ -34,7 +34,10 @@ async fn event_event_handler(
             msg.channel_id.say(&ctx.http, line).await?;
         }
 
-        if msg.content.contains("ok") {
+        if msg_lowercase.contains(" ok ")
+            || msg_lowercase.contains(":okay:")
+            || msg_lowercase.contains(" okay ")
+        {
             msg.react(
                 ctx,
                 poise::serenity_prelude::ReactionType::Custom {
