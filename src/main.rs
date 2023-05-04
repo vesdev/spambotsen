@@ -3,8 +3,12 @@ use std::{path::PathBuf, sync::Arc};
 use anyhow::Context as _;
 use common::*;
 use forsen_lines::ForsenLines;
-use poise::serenity_prelude::{self as serenity, ArgumentConvert};
+use poise::{
+    futures_util::lock::Mutex,
+    serenity_prelude::{self as serenity, ArgumentConvert},
+};
 
+use rand::thread_rng;
 use shuttle_poise::ShuttlePoise;
 use shuttle_secrets::SecretStore;
 
@@ -78,7 +82,7 @@ async fn poise(
 
     let framework = poise::Framework::builder()
         .options(poise::FrameworkOptions {
-            commands: vec![commands::channel_id(), commands::roll()],
+            commands: vec![commands::roll()],
             event_handler: |ctx, event, framework, user_data| {
                 Box::pin(event_event_handler(ctx, event, framework, user_data))
             },

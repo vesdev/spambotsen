@@ -19,6 +19,9 @@
       {
         devShells.default = mkShell {
           buildInputs = [
+            (rust-bin.stable.latest.default.override {
+              extensions = [ "rust-src" "rust-analyzer" ];
+            })
             cargo
             protobuf
             pkg-config
@@ -27,6 +30,7 @@
             
           ];
         };
+        formatter.x86_64-linux = legacyPackages.${system}.nixpkgs-fmt;
       }
     );
 

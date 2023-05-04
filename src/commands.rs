@@ -1,22 +1,14 @@
 use crate::common::*;
-use rand::Rng;
-
-#[poise::command(slash_command)]
-pub async fn channel_id(ctx: Context<'_>) -> Result<(), Error> {
-    let channel_id = ctx.channel_id().to_string();
-    ctx.say(channel_id).await?;
-
-    Ok(())
-}
+use rand::{thread_rng, Rng};
 
 #[poise::command(slash_command)]
 pub async fn roll(
     ctx: Context<'_>,
-    #[description = "Range to roll"]
-    range: u32,
-    ) -> Result<(), Error> {
-    let mut rng = rand::thread_rng();
-    ctx.say(rng.gen_range(0..range).to_string());
+    #[description = "Range to roll"] range: u32,
+) -> Result<(), Error> {
+    let roll = thread_rng().gen_range(0..range).to_string();
+
+    ctx.say(roll).await?;
 
     Ok(())
 }
