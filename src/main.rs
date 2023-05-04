@@ -78,7 +78,7 @@ async fn poise(
 
     let framework = poise::Framework::builder()
         .options(poise::FrameworkOptions {
-            commands: vec![commands::channel_id()],
+            commands: vec![commands::channel_id(), commands::roll()],
             event_handler: |ctx, event, framework, user_data| {
                 Box::pin(event_event_handler(ctx, event, framework, user_data))
             },

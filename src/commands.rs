@@ -1,5 +1,5 @@
 use crate::common::*;
-use rand::{seq::SliceRandom, thread_rng};
+use rand::Rng;
 
 #[poise::command(slash_command)]
 pub async fn channel_id(ctx: Context<'_>) -> Result<(), Error> {
@@ -11,10 +11,12 @@ pub async fn channel_id(ctx: Context<'_>) -> Result<(), Error> {
 
 #[poise::command(slash_command)]
 pub async fn roll(
-    ctx: Context<'_>
+    ctx: Context<'_>,
     #[description = "Range to roll"]
     range: u32,
     ) -> Result<(), Error> {
     let mut rng = rand::thread_rng();
     ctx.say(rng.gen_range(0..range).to_string());
+
+    Ok(())
 }

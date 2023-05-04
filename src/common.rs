@@ -12,7 +12,6 @@ pub struct Config {
 pub struct Data {
     pub forsen_lines: Arc<ForsenLines>,
     pub config: Config,
-    pub rng: std::rand::Rng,
 } // User data, which is stored and accessible in all command invocations
 
 pub type Error = Box<dyn std::error::Error + Send + Sync>;

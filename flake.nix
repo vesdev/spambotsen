@@ -2,17 +2,32 @@
   description = "spambotsen dev env";
 
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-stable";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
     rust-overlay.url = "github:oxalica/rust-overlay";
   };
   
-  outputs = with pkgs ; {
-    buildInputs = [
-      openssl
-      cargo-watch
-      rust-bin.stable.latest.default
-    ]
-  }
+  outputs = {nixpkgs, flake-utils, rust-overlay, ... }:
+    flake-utils.lib.eachDefaultSystem (system:
+      let
+        overlays = [ (import rust-overlay) ];
+        pkgs = import nixpkgs {
+          inherit system overlays;
+        };
+      in
+      with pkgs;
+      {
+        devShells.default = mkShell {
+          buildInputs = [
+            cargo
+            protobuf
+            pkg-config
+            openssl
+            rust-bin.stable.latest.default
+            
+          ];
+        };
+      }
+    );
 
 }
