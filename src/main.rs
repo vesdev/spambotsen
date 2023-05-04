@@ -3,12 +3,8 @@ use std::{path::PathBuf, sync::Arc};
 use anyhow::Context as _;
 use common::*;
 use forsen_lines::ForsenLines;
-use poise::{
-    futures_util::lock::Mutex,
-    serenity_prelude::{self as serenity, ArgumentConvert},
-};
+use poise::serenity_prelude::{self as serenity};
 
-use rand::thread_rng;
 use shuttle_poise::ShuttlePoise;
 use shuttle_secrets::SecretStore;
 

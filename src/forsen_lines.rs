@@ -2,10 +2,7 @@ use csv::Reader;
 use rand::{seq::SliceRandom, thread_rng};
 use std::{error::Error, path::PathBuf};
 
-fn parse_lines(
-    path: PathBuf,
-    forsen_lines: &mut ForsenLines,
-) -> Result<(), Box<dyn Error>> {
+fn parse_lines(path: PathBuf, forsen_lines: &mut ForsenLines) -> Result<(), Box<dyn Error>> {
     let mut rdr = Reader::from_path(path)?;
     for result in rdr.records() {
         let record = result?;
@@ -33,19 +30,15 @@ pub struct ForsenLines {
 
 impl ForsenLines {
     pub fn new(path: PathBuf) -> Self {
-        let mut result =
-            Self { lines: Vec::new() };
-        parse_lines(path, &mut result)
-            .expect("Error parsing csv");
+        let mut result = Self { lines: Vec::new() };
+        parse_lines(path, &mut result).expect("Error parsing csv");
         result
     }
 
     pub fn get_random(&self) -> String {
         let mut rng = thread_rng();
         self.lines
-            .choose_weighted(&mut rng, |item| {
-                item.1
-            })
+            .choose_weighted(&mut rng, |item| item.1)
             .unwrap()
             .0
             .clone()
