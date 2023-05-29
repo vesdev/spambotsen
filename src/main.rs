@@ -3,14 +3,17 @@ use std::{path::PathBuf, sync::Arc};
 use anyhow::Context as _;
 use common::*;
 use forsen_lines::ForsenLines;
-use poise::serenity_prelude::{self as serenity};
+use poise::{
+    serenity_prelude::{self as serenity, GatewayIntents},
+    Prefix,
+};
 
 use shuttle_poise::ShuttlePoise;
 use shuttle_secrets::SecretStore;
-
 mod commands;
 mod common;
 mod forsen_lines;
+mod hebi;
 
 async fn event_event_handler(
     ctx: &serenity::Context,
@@ -78,16 +81,18 @@ async fn poise(
 
     let framework = poise::Framework::builder()
         .options(poise::FrameworkOptions {
-            commands: vec![commands::roll()],
+            commands: vec![commands::roll(), commands::hebi()],
             event_handler: |ctx, event, framework, user_data| {
                 Box::pin(event_event_handler(ctx, event, framework, user_data))
+            },
+            prefix_options: poise::PrefixFrameworkOptions {
+                prefix: Some("!".into()),
+                ..Default::default()
             },
             ..Default::default()
         })
         .token(discord_token)
-        .intents(
-            serenity::GatewayIntents::GUILD_MESSAGES | serenity::GatewayIntents::MESSAGE_CONTENT,
-        )
+        .intents(serenity::GatewayIntents::non_privileged() | GatewayIntents::MESSAGE_CONTENT)
         .setup(|ctx, _ready, framework| {
             Box::pin(async move {
                 poise::builtins::register_globally(ctx, &framework.options().commands).await?;
