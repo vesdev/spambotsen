@@ -22,12 +22,9 @@
             (rust-bin.stable.latest.default.override {
               extensions = [ "rust-src" "rust-analyzer" ];
             })
-            cargo
             protobuf
             pkg-config
             openssl
-            rust-bin.stable.latest.default
-            
           ];
         };
         formatter.x86_64-linux = legacyPackages.${system}.nixpkgs-fmt;
