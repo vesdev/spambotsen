@@ -1,5 +1,3 @@
-use std::{sync::mpsc, time::Duration};
-
 use hebi::Hebi;
 
 pub async fn eval_hebi(source: String) -> String {
@@ -22,7 +20,7 @@ pub async fn eval_hebi(source: String) -> String {
             .unwrap(),
         ))
     });
-    let sleep = tokio::time::sleep(Duration::from_secs(10));
+    let sleep = tokio::time::sleep(tokio::time::Duration::from_secs(10));
     tokio::pin!(sleep);
 
     let (output, result) = tokio::select! {
