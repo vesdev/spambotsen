@@ -1,8 +1,7 @@
 use crate::common::*;
-use hebi::Hebi;
+
 use poise::CodeBlock;
 use rand::{thread_rng, Rng};
-use std::time::Duration;
 
 #[poise::command(slash_command)]
 pub async fn roll(
