@@ -8,7 +8,7 @@ pub async fn eval_hebi(source: String) -> String {
         let mut hebi = Hebi::builder().output(Vec::<u8>::new()).finish();
 
         let (sender, receiver) = mpsc::channel();
-        let t = std::thread::spawn(move || {
+        let t = tokio::task::spawn_blocking(move || {
             sender.send((
                 match hebi.eval(&source) {
                     Ok(value) => format!("Value: {value:#?}"),
