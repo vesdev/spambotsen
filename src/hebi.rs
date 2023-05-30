@@ -3,12 +3,11 @@ use std::{sync::mpsc, time::Duration};
 use hebi::Hebi;
 
 pub async fn eval_hebi(source: String) -> String {
+    let (tx, mut rx) = tokio::sync::oneshot::channel();
     let mut hebi = Hebi::builder().output(Vec::<u8>::new()).finish();
-
-    let (sender, receiver) = mpsc::channel();
-    let t = std::thread::spawn(move || {
-        sender.send((
-            match hebi.eval(&source) {
+    let t = tokio::spawn(async move {
+        tx.send((
+            match hebi.eval_async(&source).await {
                 Ok(value) => format!("Value: {value:#?}"),
                 Err(e) => e.report(&source, false),
             },
@@ -23,14 +22,16 @@ pub async fn eval_hebi(source: String) -> String {
             .unwrap(),
         ))
     });
+    let sleep = tokio::time::sleep(Duration::from_secs(10));
+    tokio::pin!(sleep);
 
-    let (result, output) = match receiver.recv_timeout(Duration::from_secs(10)) {
-        Ok(result) => result,
-        Err(_) => {
-            drop(receiver);
-            drop(t);
-
-            ("Request timed out".to_string(), "None".to_string())
+    let (output, result) = tokio::select! {
+        Ok(v) = &mut rx => {
+            v
+        },
+        _ = &mut sleep => {
+            ("Request timed out".to_string(),
+            "None".to_string())
         }
     };
 
