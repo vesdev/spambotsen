@@ -23,7 +23,7 @@ pub async fn eval_hebi(source: String) -> String {
     let sleep = tokio::time::sleep(tokio::time::Duration::from_secs(10));
     tokio::pin!(sleep);
 
-    let (output, result) = tokio::select! {
+    let (result, output) = tokio::select! {
         Ok(v) = &mut rx => {
             v
         },
