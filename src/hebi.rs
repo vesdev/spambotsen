@@ -5,7 +5,7 @@ use hebi::Hebi;
 pub async fn eval_hebi(source: String) -> String {
     let (tx, mut rx) = tokio::sync::oneshot::channel();
     let mut hebi = Hebi::builder().output(Vec::<u8>::new()).finish();
-    let t = tokio::spawn(async move {
+    tokio::spawn(async move {
         tx.send((
             match hebi.eval_async(&source).await {
                 Ok(value) => format!("Value: {value:#?}"),
