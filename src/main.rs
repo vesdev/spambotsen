@@ -1,11 +1,15 @@
-use std::{path::PathBuf, sync::Arc};
+use std::{
+    path::PathBuf,
+    sync::{Arc, RwLock},
+    time::Duration,
+};
 
 use anyhow::Context as _;
 use common::*;
 use forsen_lines::ForsenLines;
 use poise::{
     serenity_prelude::{self as serenity, GatewayIntents},
-    Prefix,
+    EditTracker, Prefix,
 };
 
 use shuttle_poise::ShuttlePoise;
@@ -87,6 +91,7 @@ async fn poise(
             },
             prefix_options: poise::PrefixFrameworkOptions {
                 prefix: Some("!".into()),
+                edit_tracker: Some(EditTracker::for_timespan(Duration::from_secs(60))),
                 ..Default::default()
             },
             ..Default::default()
