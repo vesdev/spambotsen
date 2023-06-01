@@ -12,7 +12,6 @@ impl Display for EvalResult {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if let Some(disassembly) = &self.disassembly {
             write!(f, "## Disassembly:\n```{}```\n", disassembly)?;
-            f
         }
         if self.output.is_empty() {
             write!(f, "## Result:\n```{}```", self.result)?;
