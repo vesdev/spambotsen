@@ -8,13 +8,14 @@ fn parse_lines(path: PathBuf, forsen_lines: &mut ForsenLines) -> Result<(), Box<
         let record = result?;
 
         if let Some(line) = record.get(1) {
+            let rarity = record.get(4).unwrap_or("undefined");
             forsen_lines.lines.push((
-                line.trim().to_string(),
-                match record.get(4) {
-                    Some("Very rare") => 1,
-                    Some("Rare") => 2,
-                    Some("Uncommon") => 3,
-                    Some("Common") => 4,
+                line.trim().to_string() + &format!(" ({rarity})"),
+                match rarity {
+                    "Very rare" => 1,
+                    "Rare" => 2,
+                    "Uncommon" => 3,
+                    "Common" => 4,
                     _ => 1,
                 },
             ));
