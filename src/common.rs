@@ -1,13 +1,6 @@
 use std::sync::Arc;
 
-use crate::forsen_lines::ForsenLines;
-use serde::Deserialize;
-
-#[derive(Deserialize)]
-pub struct Config {
-    pub hmm_emote_id: u64,
-    pub ok_emote_id: u64,
-}
+use crate::{config::Config, forsen_lines::ForsenLines};
 
 pub struct Data {
     pub forsen_lines: Arc<ForsenLines>,

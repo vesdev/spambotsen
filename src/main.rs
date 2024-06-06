@@ -1,23 +1,18 @@
-use std::{
-    path::PathBuf,
-    sync::{Arc, RwLock},
-    time::Duration,
-};
+use std::{path::PathBuf, sync::Arc, time::Duration};
 
-use anyhow::Context as _;
 use common::*;
+use eyre::Context;
 use forsen_lines::ForsenLines;
 use poise::{
     serenity_prelude::{self as serenity, GatewayIntents},
-    EditTracker, Prefix,
+    EditTracker,
 };
 
-use shuttle_poise::ShuttlePoise;
-use shuttle_secrets::SecretStore;
 mod commands;
 mod common;
+mod config;
 mod forsen_lines;
-mod hebi;
+// mod hebi;
 
 async fn event_event_handler(
     ctx: &serenity::Context,
@@ -74,18 +69,19 @@ async fn event_event_handler(
     Ok(())
 }
 
-#[shuttle_runtime::main]
-async fn poise(
-    #[shuttle_static_folder::StaticFolder(folder = "static")] static_folder: PathBuf,
-    #[shuttle_secrets::Secrets] secret_store: SecretStore,
-) -> ShuttlePoise<Data, Error> {
-    let discord_token = secret_store
-        .get("DISCORD_TOKEN")
-        .context("'DISCORD_TOKEN' was not found")?;
+#[tokio::main]
+async fn main() -> eyre::Result<()> {
+    let args: Vec<String> = std::env::args().collect();
+    let config_path = args.get(1).unwrap_or(&"./spambotsen.toml".into()).clone();
+
+    let config =
+        config::from_path(config_path.into()).context("Unable to parse configuration from path")?;
+
+    let discord_token = config.discord_token.clone();
 
     let framework = poise::Framework::builder()
         .options(poise::FrameworkOptions {
-            commands: vec![commands::roll(), commands::hebi()],
+            commands: vec![commands::roll()],
             event_handler: |ctx, event, framework, user_data| {
                 Box::pin(event_event_handler(ctx, event, framework, user_data))
             },
@@ -102,21 +98,17 @@ async fn poise(
             Box::pin(async move {
                 poise::builtins::register_globally(ctx, &framework.options().commands).await?;
                 Ok(Data {
-                    forsen_lines: Arc::new(ForsenLines::new(
-                        static_folder.join("forsen_lines.csv"),
-                    )),
-                    config: toml::from_str(
-                        std::fs::read_to_string(static_folder.join("config.toml"))
-                            .expect("config.toml not found")
-                            .as_str(),
-                    )
-                    .unwrap(),
+                    forsen_lines: Arc::new(ForsenLines::new(PathBuf::from(
+                        "static/forsen_lines.csv",
+                    ))),
+                    config,
                 })
             })
         })
         .build()
         .await
-        .map_err(shuttle_runtime::CustomError::new)?;
+        .context("Failed to build poise framework")?;
 
-    Ok(framework.into())
+    framework.start().await?;
+    Ok(())
 }
