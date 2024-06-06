@@ -34,7 +34,19 @@
         user = "spambotsen";
         group = "spambotsen";
         restart = "always";
-        WorkingDirectory = "${config.services.spambotsen.package}";
+        WorkingDirectory =
+          let
+            static = pkgs.stdenv.mkDerivation {
+              name = "spambotsen-static";
+              src = ./.;
+              phases = [ "installPhase" ];
+              installPhase = ''
+                mkdir -p $out
+                cp -r $src/static $out
+              '';
+            };
+          in
+          static;
         ExecStart = "${config.services.spambotsen.package}/bin/spambotsen ${config.services.spambotsen.configFile}";
       };
     };
