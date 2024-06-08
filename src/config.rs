@@ -1,12 +1,19 @@
-use std::path::PathBuf;
+use std::{collections::HashMap, path::PathBuf};
 
 use serde::Deserialize;
 
-#[derive(Deserialize, Clone)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct Config {
     pub discord_token: String,
-    pub hmm_emote_id: u64,
-    pub ok_emote_id: u64,
+    pub reactions: HashMap<String, Emote>,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct Emote {
+    pub id: u64,
+    pub matches: Vec<String>,
+    #[serde(default)]
+    pub animated: bool,
 }
 
 pub fn from_path(path: PathBuf) -> eyre::Result<Config> {

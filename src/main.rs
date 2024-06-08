@@ -36,33 +36,21 @@ async fn event_event_handler(
             msg.channel_id.say(&ctx.http, line).await?;
         }
 
-        if msg_lowercase == "ok"
-            || msg_lowercase == "okay"
-            || msg_lowercase.contains(" ok ")
-            || msg_lowercase.contains(":okay:")
-            || msg_lowercase.contains(" okay ")
-        {
-            msg.react(
-                ctx,
-                poise::serenity_prelude::ReactionType::Custom {
-                    animated: false,
-                    id: serenity::EmojiId(user_data.config.ok_emote_id),
-                    name: Some("monkahmm".to_string()),
-                },
-            )
-            .await?;
-        }
-
-        if msg.content.contains("hmm") {
-            msg.react(
-                ctx,
-                poise::serenity_prelude::ReactionType::Custom {
-                    animated: false,
-                    id: serenity::EmojiId(user_data.config.hmm_emote_id),
-                    name: Some("monkahmm".to_string()),
-                },
-            )
-            .await?;
+        let words = msg_lowercase.split_whitespace();
+        for word in words {
+            for (_, reaction) in user_data.config.reactions.iter() {
+                if reaction.matches.contains(&word.into()) {
+                    msg.react(
+                        ctx,
+                        poise::serenity_prelude::ReactionType::Custom {
+                            animated: reaction.animated,
+                            id: serenity::EmojiId(reaction.id),
+                            name: Some(word.into()),
+                        },
+                    )
+                    .await?;
+                }
+            }
         }
     }
 
