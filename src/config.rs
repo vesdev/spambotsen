@@ -1,6 +1,8 @@
-use std::{collections::HashMap, path::PathBuf};
+use std::{collections::HashMap, path::PathBuf, sync::Arc};
 
 use serde::Deserialize;
+
+use crate::platform::bridge::PlatformKind;
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct Config {
@@ -31,7 +33,8 @@ pub struct Twitch {
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct Bridge {
-    pub channels: Vec<ChannelId>,
+    pub from: ChannelId,
+    pub to: ChannelId,
 }
 
 #[derive(Debug, Deserialize, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -41,6 +44,17 @@ pub enum ChannelId {
     Twitch { id: String },
 }
 
-pub fn from_path(path: PathBuf) -> eyre::Result<Config> {
-    Ok(toml::from_str::<Config>(&std::fs::read_to_string(path)?)?)
+impl ChannelId {
+    pub fn kind(&self) -> PlatformKind {
+        match self {
+            ChannelId::Discord { .. } => PlatformKind::Discord,
+            ChannelId::Twitch { .. } => PlatformKind::Twitch,
+        }
+    }
+}
+
+pub fn from_path(path: PathBuf) -> eyre::Result<Arc<Config>> {
+    Ok(Arc::new(toml::from_str::<Config>(
+        &std::fs::read_to_string(path)?,
+    )?))
 }

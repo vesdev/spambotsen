@@ -3,83 +3,118 @@ pub mod twitch;
 
 /// Scuffed event system
 pub mod bridge {
-    use std::collections::HashMap;
+    use std::{collections::HashMap, sync::Arc};
 
     use tokio::sync::mpsc;
 
     use crate::config::ChannelId;
 
-    pub struct Bridge {
-        receiver: Receiver,
-        raw_sender: mpsc::Sender<(ChannelId, Event)>,
-        listeners: HashMap<ChannelId, Vec<Sender>>,
+    pub struct BridgeBuilder {
+        bridge: Bridge,
+        platforms: HashMap<PlatformKind, Platform>,
+        senders: HashMap<PlatformKind, mpsc::Sender<RawEvent>>,
     }
 
-    impl Bridge {
+    impl BridgeBuilder {
         pub fn new() -> Self {
-            let (sender, receiver) = mpsc::channel(100);
-            let receiver = Receiver { receiver };
             Self {
-                receiver,
-                raw_sender: sender,
-                listeners: HashMap::new(),
+                bridge: Bridge::new(),
+                platforms: HashMap::new(),
+                senders: HashMap::new(),
             }
         }
 
-        pub async fn recv(&mut self) -> Option<(ChannelId, Event)> {
-            self.receiver.recv().await
+        pub fn bridge(&mut self, from: ChannelId, to: ChannelId) -> &mut Self {
+            let kind = to.kind();
+            self.plaftorm(kind.clone());
+
+            self.bridge.insert(from, (to, kind));
+
+            self
         }
 
-        pub fn sender(&self) -> Sender {
-            Sender {
-                sender: self.raw_sender.clone(),
+        fn plaftorm(&mut self, kind: PlatformKind) {
+            if let std::collections::hash_map::Entry::Vacant(e) = self.platforms.entry(kind.clone())
+            {
+                let (platform, s) = Platform::new();
+                self.senders.insert(kind, s.clone());
+                e.insert(platform);
             }
         }
 
-        pub fn listen(&mut self, id: ChannelId, sender: Sender) {
-            if let Some(senders) = self.listeners.get_mut(&id) {
-                senders.push(sender);
-            } else {
-                self.listeners.insert(id, vec![sender]);
+        pub fn build(mut self) -> (Arc<Bridge>, HashMap<PlatformKind, Platform>) {
+            for (kind, platform) in &mut self.platforms {
+                let mut senders = self.senders.clone();
+                senders.remove(kind); // remove itself
+                platform.sender.senders = senders;
             }
-        }
-
-        pub fn get_listeners(&self, id: &ChannelId) -> Option<&Vec<Sender>> {
-            self.listeners.get(id)
-        }
-
-        pub async fn send(&mut self, ev: Event) {
-            for (id, senders) in &mut self.listeners {
-                for sender in senders.iter_mut() {
-                    sender.send(id.clone(), ev.clone()).await;
-                }
-            }
-        }
-
-        pub fn channel_ids(&self) -> Vec<&ChannelId> {
-            self.listeners.keys().collect()
+            (Arc::new(self.bridge), self.platforms)
         }
     }
 
-    #[derive(Clone)]
-    pub struct Sender {
-        sender: mpsc::Sender<(ChannelId, Event)>,
+    pub type Bridge = HashMap<ChannelId, (ChannelId, PlatformKind)>;
+
+    #[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
+    pub enum PlatformKind {
+        Twitch,
+        Discord,
     }
 
-    impl Sender {
-        pub async fn send(&mut self, id: ChannelId, ev: Event) {
-            self.sender.send((id, ev)).await.unwrap();
+    pub struct Platform {
+        pub receiver: Receiver,
+        pub sender: Sender,
+    }
+
+    impl Platform {
+        fn new() -> (Self, mpsc::Sender<RawEvent>) {
+            let (s, r) = mpsc::channel(100);
+            (
+                Self {
+                    receiver: Receiver::new(r),
+                    sender: Sender::new(),
+                },
+                s,
+            )
         }
     }
 
     pub struct Receiver {
-        receiver: mpsc::Receiver<(ChannelId, Event)>,
+        pub receiver: mpsc::Receiver<RawEvent>,
     }
 
     impl Receiver {
-        pub async fn recv(&mut self) -> Option<(ChannelId, Event)> {
+        pub fn new(r: mpsc::Receiver<RawEvent>) -> Self {
+            Self { receiver: r }
+        }
+
+        pub async fn recv(&mut self) -> Option<RawEvent> {
             self.receiver.recv().await
         }
+    }
+
+    pub struct Sender {
+        senders: HashMap<PlatformKind, mpsc::Sender<RawEvent>>,
+    }
+
+    impl Sender {
+        pub fn new() -> Self {
+            Self {
+                senders: HashMap::new(),
+            }
+        }
+
+        pub async fn send(&mut self, ev: RawEvent) {
+            if let Some(sender) = self.senders.get(&ev.to.kind()) {
+                sender.send(ev).await.unwrap();
+            }
+        }
+    }
+
+    #[derive(Clone)]
+    pub struct RawEvent {
+        pub from: ChannelId,
+        pub to: ChannelId,
+        pub ev: Event,
     }
 
     #[derive(Clone)]

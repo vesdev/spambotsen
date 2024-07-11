@@ -1,6 +1,7 @@
-use config::{ChannelId, Config};
 use eyre::Context;
-use platform::bridge::Bridge;
+use platform::bridge::BridgeBuilder;
+
+use crate::platform::bridge::PlatformKind;
 mod commands;
 mod common;
 mod config;
@@ -15,57 +16,34 @@ async fn main() -> eyre::Result<()> {
     let config =
         config::from_path(config_path.into()).context("Unable to parse configuration from path")?;
 
-    let bridges = Bridges::new(&config);
-    let discord = {
+    let mut builder = BridgeBuilder::new();
+
+    config.bridges.iter().for_each(|(_, brdg)| {
+        builder.bridge(brdg.from.clone(), brdg.to.clone());
+    });
+
+    let (bridge, platforms) = builder.build();
+
+    platforms.into_iter().for_each(|(kind, p)| {
         let config = config.clone();
-        async move {
-            platform::discord::run(config, bridges.discord)
-                .await
-                .unwrap();
-        }
-    };
-
-    let twitch = async move {
-        platform::twitch::run(config, bridges.twitch).await.unwrap();
-    };
-
-    tokio::select! {
-        _ = discord => {},
-        _ = twitch => {},
-    }
-
-    Ok(())
-}
-
-struct Bridges {
-    discord: Bridge,
-    twitch: Bridge,
-}
-
-impl Bridges {
-    fn new(config: &Config) -> Self {
-        let mut bridges = Self {
-            discord: Bridge::new(),
-            twitch: Bridge::new(),
-        };
-
-        config.bridges.iter().for_each(|(_, bridge)| {
-            for channel in &bridge.channels {
-                match channel {
-                    ChannelId::Discord { .. } => {
-                        bridges
-                            .twitch
-                            .listen(channel.clone(), bridges.discord.sender());
-                    }
-                    ChannelId::Twitch { .. } => {
-                        bridges
-                            .discord
-                            .listen(channel.clone(), bridges.twitch.sender());
-                    }
-                };
+        let bridge = bridge.clone();
+        match kind {
+            PlatformKind::Twitch => {
+                tokio::spawn(async move {
+                    platform::twitch::run(config, bridge.clone(), p)
+                        .await
+                        .unwrap();
+                });
             }
-        });
+            PlatformKind::Discord => {
+                tokio::spawn(async move {
+                    platform::discord::run(config, bridge, p).await.unwrap();
+                });
+            }
+        }
+    });
 
-        bridges
-    }
+    // -1 worker LULE dont look
+    #[allow(clippy::empty_loop)]
+    loop {}
 }
