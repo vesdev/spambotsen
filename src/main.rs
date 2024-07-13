@@ -16,11 +16,31 @@ async fn main() -> eyre::Result<()> {
     let config =
         config::from_path(config_path.into()).context("Unable to parse configuration from path")?;
 
-    let mut builder = BridgeBuilder::new();
+    let mut builder = BridgeBuilder::default();
 
-    config.bridges.iter().for_each(|(_, brdg)| {
-        builder.bridge(brdg.from.clone(), brdg.to.clone());
-    });
+    for b in &config.bridges {
+        for b in b.values() {
+            let mut translate_from = None;
+            let mut translate_to = None;
+            if let (Some(t), Some(s)) = (config.translate.as_ref(), b.translate.as_ref()) {
+                translate_from = t.get(&s.from).cloned();
+                if let Some(to) = s.to.as_ref() {
+                    translate_to = t
+                        .get(to)
+                        .cloned()
+                        .map(|m| m.into_iter().map(|(a, b)| (b, a)).collect());
+                }
+            }
+
+            builder.bridge(
+                b.from.clone(),
+                b.to.clone(),
+                b.symmetric,
+                translate_from,
+                translate_to,
+            );
+        }
+    }
 
     let (bridge, platforms) = builder.build();
 

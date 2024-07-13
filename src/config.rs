@@ -8,7 +8,8 @@ use crate::platform::bridge::PlatformKind;
 pub struct Config {
     pub discord: Option<Discord>,
     pub twitch: Option<Twitch>,
-    pub bridges: HashMap<String, Bridge>,
+    pub bridges: Option<HashMap<String, Bridge>>,
+    pub translate: Option<HashMap<String, HashMap<String, String>>>,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -35,6 +36,15 @@ pub struct Twitch {
 pub struct Bridge {
     pub from: ChannelId,
     pub to: ChannelId,
+    #[serde(default)]
+    pub symmetric: bool,
+    pub translate: Option<Translate>,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct Translate {
+    pub from: String,
+    pub to: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]

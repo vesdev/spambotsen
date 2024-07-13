@@ -5,7 +5,7 @@ use tmi::Credentials;
 
 use crate::{
     config::{ChannelId, Config},
-    platform::bridge::{Event, RawEvent},
+    platform::bridge::Event,
 };
 
 use super::bridge::{Bridge, Platform};
@@ -25,10 +25,18 @@ pub async fn run(config: Arc<Config>, bridge: Arc<Bridge>, p: Platform) -> eyre:
         .await?;
 
     let mut channels = Vec::new();
-    for bridge in &config.bridges {
-        if let ChannelId::Twitch { id } = &bridge.1.from {
-            channels.push(id.clone());
-        }
+    if let Some(bridges) = config.bridges.as_ref() {
+        bridges.iter().for_each(|b| {
+            let mut push_channel = |id: &ChannelId| {
+                if let ChannelId::Twitch { id } = &id {
+                    channels.push(id.clone());
+                }
+            };
+            push_channel(&b.1.from);
+            if b.1.symmetric {
+                push_channel(&b.1.to);
+            }
+        });
     }
 
     client.join_all(channels.clone()).await?;
@@ -57,16 +65,17 @@ pub async fn run(config: Arc<Config>, bridge: Arc<Bridge>, p: Platform) -> eyre:
                         let from = ChannelId::Twitch {
                              id: msg.channel().into(),
                         };
-                        if let Some((to, _)) = bridge.get(&from) {
+                        if let Some(channels) = bridge.get(&from) {
+                            let text = bridge.translate(&from, msg.text().into());
                             sender
-                                .send(RawEvent {
+                                .send(
                                     from,
-                                    to: to.clone(),
-                                    ev: Event::SendMessage {
+                                    channels,
+                                    Event::SendMessage {
                                         name: msg.sender().name().into(),
-                                        text: msg.text().into(),
+                                        text,
                                     },
-                                })
+                                )
                                 .await;
                         }
                     }

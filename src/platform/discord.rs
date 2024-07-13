@@ -16,7 +16,7 @@ use crate::{
     platform::bridge::Event,
 };
 
-use super::bridge::{Bridge, Platform, RawEvent, Sender};
+use super::bridge::{Bridge, Platform, Sender};
 
 pub type Ctx<'a> = poise::Context<'a, Data, Error>;
 
@@ -76,17 +76,18 @@ async fn event_handler(
             id: msg.channel_id.0,
         };
 
-        if let Some((to, _)) = user_data.bridge.get(&from) {
+        if let Some(channels) = user_data.bridge.get(&from) {
             let mut sender = user_data.sender.lock().await;
+            let text = user_data.bridge.translate(&from, msg.content.clone());
             sender
-                .send(RawEvent {
+                .send(
                     from,
-                    to: to.clone(),
-                    ev: Event::SendMessage {
+                    channels,
+                    Event::SendMessage {
                         name: msg.author.name.clone(),
-                        text: msg.content.clone(),
+                        text,
                     },
-                })
+                )
                 .await;
         }
     }

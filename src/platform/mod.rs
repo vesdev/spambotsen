@@ -9,6 +9,7 @@ pub mod bridge {
 
     use crate::config::ChannelId;
 
+    #[derive(Default)]
     pub struct BridgeBuilder {
         bridge: Bridge,
         platforms: HashMap<PlatformKind, Platform>,
@@ -16,21 +17,41 @@ pub mod bridge {
     }
 
     impl BridgeBuilder {
-        pub fn new() -> Self {
-            Self {
-                bridge: Bridge::new(),
-                platforms: HashMap::new(),
-                senders: HashMap::new(),
+        pub fn bridge(
+            &mut self,
+            from: ChannelId,
+            to: ChannelId,
+            symmetric: bool,
+            translate_from: Option<HashMap<String, String>>,
+            translate_to: Option<HashMap<String, String>>,
+        ) -> &mut Self {
+            if symmetric {
+                self.add_bridge(to.clone(), from.clone(), translate_to);
             }
-        }
 
-        pub fn bridge(&mut self, from: ChannelId, to: ChannelId) -> &mut Self {
-            let kind = to.kind();
-            self.plaftorm(kind.clone());
-
-            self.bridge.insert(from, (to, kind));
+            self.add_bridge(from, to, translate_from);
 
             self
+        }
+
+        fn add_bridge(
+            &mut self,
+            a: ChannelId,
+            b: ChannelId,
+            translate: Option<HashMap<String, String>>,
+        ) {
+            let kind = a.kind();
+            self.plaftorm(kind.clone());
+
+            if let Some(t) = translate {
+                self.bridge.translate.insert(a.clone(), t);
+            };
+
+            if let Some(channels) = self.bridge.channels.get_mut(&a) {
+                channels.push((b, kind));
+            } else {
+                self.bridge.channels.insert(a, vec![(b, kind)]);
+            }
         }
 
         fn plaftorm(&mut self, kind: PlatformKind) {
@@ -43,18 +64,38 @@ pub mod bridge {
         }
 
         pub fn build(mut self) -> (Arc<Bridge>, HashMap<PlatformKind, Platform>) {
-            for (kind, platform) in &mut self.platforms {
-                let mut senders = self.senders.clone();
-                senders.remove(kind); // remove itself
-                platform.sender.senders = senders;
+            for platform in &mut self.platforms.values_mut() {
+                platform.sender.senders.clone_from(&self.senders);
             }
             (Arc::new(self.bridge), self.platforms)
         }
     }
 
-    pub type Bridge = HashMap<ChannelId, (ChannelId, PlatformKind)>;
+    #[derive(Default)]
+    pub struct Bridge {
+        channels: HashMap<ChannelId, Vec<(ChannelId, PlatformKind)>>,
+        translate: HashMap<ChannelId, HashMap<String, String>>,
+    }
 
-    #[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
+    impl Bridge {
+        pub fn get(&self, id: &ChannelId) -> Option<&Vec<(ChannelId, PlatformKind)>> {
+            self.channels.get(id)
+        }
+
+        pub fn translate(&self, id: &ChannelId, mut msg: String) -> String {
+            if let Some(t) = self.translate.get(id) {
+                msg = msg
+                    .split_whitespace()
+                    .map(|w| t.get(w).map(String::as_str).unwrap_or(w).to_owned() + " ")
+                    .collect::<String>()
+                    .trim_end()
+                    .into();
+            }
+            msg
+        }
+    }
+
+    #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
     pub enum PlatformKind {
         Twitch,
         Discord,
@@ -103,9 +144,23 @@ pub mod bridge {
             }
         }
 
-        pub async fn send(&mut self, ev: RawEvent) {
-            if let Some(sender) = self.senders.get(&ev.to.kind()) {
-                sender.send(ev).await.unwrap();
+        pub async fn send(
+            &mut self,
+            from: ChannelId,
+            channels: &Vec<(ChannelId, PlatformKind)>,
+            ev: Event,
+        ) {
+            for (to, _) in channels {
+                if let Some(sender) = self.senders.get(&to.kind()) {
+                    sender
+                        .send(RawEvent {
+                            from: from.clone(),
+                            to: to.clone(),
+                            ev: ev.clone(),
+                        })
+                        .await
+                        .unwrap();
+                }
             }
         }
     }
