@@ -5,11 +5,11 @@ use rand::{thread_rng, Rng};
 #[poise::command(slash_command)]
 pub async fn roll(
     ctx: discord::Ctx<'_>,
-    #[description = "Range to roll"] range: u32,
+    #[description = "Expression"] input: String,
 ) -> Result<(), Error> {
-    let roll = thread_rng().gen_range(0..range).to_string();
+    let result = roll_dice::roll(&input, thread_rng().gen(), u64::MAX)?;
 
-    ctx.say(roll).await?;
+    ctx.say(result.to_string()).await?;
 
     Ok(())
 }
