@@ -1,5 +1,6 @@
 use eyre::Context;
 use platform::bridge::BridgeBuilder;
+use tokio::task::JoinSet;
 
 use crate::platform::bridge::PlatformKind;
 mod commands;
@@ -44,26 +45,25 @@ async fn main() -> eyre::Result<()> {
 
     let (bridge, platforms) = builder.build();
 
-    platforms.into_iter().for_each(|(kind, p)| {
+    let mut set = JoinSet::new();
+    for (kind, p) in platforms {
         let config = config.clone();
         let bridge = bridge.clone();
         match kind {
             PlatformKind::Twitch => {
-                tokio::spawn(async move {
+                set.spawn(async move {
                     platform::twitch::run(config, bridge.clone(), p)
                         .await
                         .unwrap();
                 });
             }
             PlatformKind::Discord => {
-                tokio::spawn(async move {
+                set.spawn(async move {
                     platform::discord::run(config, bridge, p).await.unwrap();
                 });
             }
         }
-    });
-
-    // -1 worker LULE dont look
-    #[allow(clippy::empty_loop)]
-    loop {}
+    }
+    set.join_next().await;
+    Ok(())
 }
