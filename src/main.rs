@@ -1,3 +1,6 @@
+use std::sync::Arc;
+
+use config::{Config, Twitch};
 use eyre::Context;
 use platform::bridge::BridgeBuilder;
 use tokio::task::JoinSet;
@@ -9,6 +12,7 @@ mod config;
 mod forsen_lines;
 mod platform;
 
+#[allow(unreachable_code)]
 #[tokio::main]
 async fn main() -> eyre::Result<()> {
     let args: Vec<String> = std::env::args().collect();
@@ -17,9 +21,22 @@ async fn main() -> eyre::Result<()> {
     let config =
         config::from_path(config_path.into()).context("Unable to parse configuration from path")?;
 
+    println!("Starting spambotsen...");
+    // Restart bot if exception isnt handled gracefully
+    loop {
+        let result = run(config.clone()).await;
+
+        // TODO: proper logging
+        println!("{result:?}");
+    }
+
+    Ok(())
+}
+
+async fn run(config: Arc<Config>) -> eyre::Result<()> {
     let mut builder = BridgeBuilder::default();
 
-    for b in &config.bridges {
+    for b in config.bridges.iter() {
         for b in b.values() {
             let mut translate_from = None;
             let mut translate_to = None;
@@ -54,12 +71,14 @@ async fn main() -> eyre::Result<()> {
                 set.spawn(async move {
                     platform::twitch::run(config, bridge.clone(), p)
                         .await
-                        .unwrap();
+                        .expect("Disconnected from twitch");
                 });
             }
             PlatformKind::Discord => {
                 set.spawn(async move {
-                    platform::discord::run(config, bridge, p).await.unwrap();
+                    platform::discord::run(config, bridge, p)
+                        .await
+                        .expect("Disconnected from discord");
                 });
             }
         }

@@ -33,6 +33,10 @@ async fn event_handler(
     _framework: poise::FrameworkContext<'_, Data, Error>,
     user_data: &Data,
 ) -> Result<(), Error> {
+    if let poise::Event::Ready { data_about_bot: _ } = event {
+        println!("Connected to discord");
+    }
+
     if let poise::Event::Message { new_message } = event {
         let msg = new_message;
         let config = user_data
@@ -118,7 +122,7 @@ pub async fn run(config: Arc<Config>, bridge: Arc<Bridge>, p: Platform) -> eyre:
         .intents(serenity::GatewayIntents::non_privileged() | GatewayIntents::MESSAGE_CONTENT)
         .setup({
             let bridge = bridge.clone();
-            let sender = Mutex::new(p.sender);
+            let sender = Mutex::new(p.sender.clone());
             |ctx, _ready, framework| {
                 Box::pin(async move {
                     poise::builtins::register_globally(ctx, &framework.options().commands).await?;

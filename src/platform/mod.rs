@@ -133,6 +133,7 @@ pub mod bridge {
         }
     }
 
+    #[derive(Clone)]
     pub struct Sender {
         senders: HashMap<PlatformKind, mpsc::Sender<RawEvent>>,
     }

@@ -40,6 +40,7 @@ pub async fn run(config: Arc<Config>, bridge: Arc<Bridge>, p: Platform) -> eyre:
     }
 
     client.join_all(channels.clone()).await?;
+    println!("Connected to twitch irc");
 
     let mut sender = p.sender;
     let mut receiver = p.receiver;
@@ -82,6 +83,7 @@ pub async fn run(config: Arc<Config>, bridge: Arc<Bridge>, p: Platform) -> eyre:
                     tmi::Message::Reconnect => {
                         client.reconnect().await?;
                         client.join_all(channels.clone()).await?;
+                        println!("Reconnected to twitch irc");
                     }
                     tmi::Message::Ping(ping) => {
                         client.pong(&ping).await?;
