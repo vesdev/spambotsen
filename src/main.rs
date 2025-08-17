@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use config::{Config, Twitch};
+use config::Config;
 use eyre::Context;
 use platform::bridge::BridgeBuilder;
 use tokio::task::JoinSet;

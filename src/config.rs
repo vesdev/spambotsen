@@ -23,7 +23,15 @@ pub struct Emote {
 #[derive(Debug, Deserialize, Clone)]
 pub struct Discord {
     pub token: String,
+    pub guilds: HashMap<String, Guild>,
     pub reactions: HashMap<String, Emote>,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct Guild {
+    pub id: u64,
+    pub reactions: Vec<String>,
+    pub responses: HashMap<String, String>,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -52,6 +60,12 @@ pub struct Translate {
 pub enum ChannelId {
     Discord { id: u64 },
     Twitch { id: String },
+}
+
+#[derive(Debug, Deserialize, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[serde(tag = "type")]
+pub struct GuildId {
+    id: String,
 }
 
 impl ChannelId {

@@ -45,54 +45,66 @@ async fn event_handler(
             .as_ref()
             .ok_or_eyre("Missing discord config!")?;
 
-        let msg_lowercase = msg.content.to_lowercase();
-        let words = msg_lowercase.split_whitespace();
-        for word in words {
-            for (_, reaction) in config.reactions.iter() {
-                if reaction.matches.contains(&word.into()) {
-                    msg.react(
-                        ctx,
-                        poise::serenity_prelude::ReactionType::Custom {
-                            animated: reaction.animated,
-                            id: serenity::EmojiId(reaction.id),
-                            name: Some(word.into()),
-                        },
-                    )
-                    .await?;
+        // ugly linear search but good enough for the usecase
+        if let Some(Some((_, guild))) = msg
+            .guild_id
+            .map(|guild_id| config.guilds.iter().find(|g| g.1.id == guild_id.0))
+        {
+            let msg_lowercase = msg.content.to_lowercase();
+            for word in msg_lowercase.split_whitespace() {
+                for reaction in config
+                    .reactions
+                    .iter()
+                    .filter(|reaction| guild.reactions.contains(reaction.0))
+                    .flat_map(|(_, reaction)| {
+                        let word = word.to_string();
+                        reaction
+                            .matches
+                            .contains(&word)
+                            .then_some(serenity::ReactionType::Custom {
+                                animated: reaction.animated,
+                                id: serenity::EmojiId(reaction.id),
+                                name: Some(word),
+                            })
+                    })
+                {
+                    msg.react(ctx, reaction).await?;
                 }
             }
-        }
 
-        if msg.author.bot {
-            return Ok(());
-        }
+            if msg.author.bot {
+                return Ok(());
+            }
 
-        if msg_lowercase.contains("forsen") {
-            msg.channel_id.say(&ctx.http, "forsen").await?;
-        }
+            for response in guild.responses.iter().flat_map(|response| {
+                msg.content
+                    .contains(response.0)
+                    .then(|| match response.1.as_str() {
+                        "<forsen line>" => user_data.forsen_lines.get_random(),
+                        _ => response.1.clone(),
+                    })
+            }) {
+                msg.channel_id.say(&ctx.http, response).await?;
+            }
 
-        if msg.content.contains(":Painsge:") {
-            let line = user_data.forsen_lines.get_random();
-            msg.channel_id.say(&ctx.http, line).await?;
-        }
+            let from = ChannelId::Discord {
+                id: msg.channel_id.0,
+            };
 
-        let from = ChannelId::Discord {
-            id: msg.channel_id.0,
-        };
-
-        if let Some(channels) = user_data.bridge.get(&from) {
-            let mut sender = user_data.sender.lock().await;
-            let text = user_data.bridge.translate(&from, msg.content.clone());
-            sender
-                .send(
-                    from,
-                    channels,
-                    Event::SendMessage {
-                        name: msg.author.name.clone(),
-                        text,
-                    },
-                )
-                .await;
+            if let Some(channels) = user_data.bridge.get(&from) {
+                let mut sender = user_data.sender.lock().await;
+                let text = user_data.bridge.translate(&from, msg.content.clone());
+                sender
+                    .send(
+                        from,
+                        channels,
+                        Event::SendMessage {
+                            name: msg.author.name.clone(),
+                            text,
+                        },
+                    )
+                    .await;
+            }
         }
     }
 

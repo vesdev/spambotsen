@@ -166,6 +166,7 @@ pub mod bridge {
         }
     }
 
+    #[allow(unused)]
     #[derive(Clone)]
     pub struct RawEvent {
         pub from: ChannelId,
