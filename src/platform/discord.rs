@@ -58,14 +58,20 @@ async fn event_handler(
                     .filter(|reaction| guild.reactions.contains(reaction.0))
                     .flat_map(|(_, reaction)| {
                         let word = word.to_string();
-                        reaction
-                            .matches
-                            .contains(&word)
-                            .then_some(serenity::ReactionType::Custom {
-                                animated: reaction.animated,
-                                id: serenity::EmojiId(reaction.id),
-                                name: Some(word),
-                            })
+                        reaction.matches.contains(&word).then_some({
+                            match &reaction.emote {
+                                crate::config::Emote::Custom { id, animated } => {
+                                    serenity::ReactionType::Custom {
+                                        animated: *animated,
+                                        id: serenity::EmojiId(*id),
+                                        name: Some(word),
+                                    }
+                                }
+                                crate::config::Emote::Unicode { name } => {
+                                    serenity::ReactionType::Unicode(name.clone())
+                                }
+                            }
+                        })
                     })
                 {
                     msg.react(ctx, reaction).await?;

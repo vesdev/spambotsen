@@ -13,18 +13,29 @@ pub struct Config {
 }
 
 #[derive(Debug, Deserialize, Clone)]
-pub struct Emote {
-    pub id: u64,
+pub struct Reaction {
     pub matches: Vec<String>,
-    #[serde(default)]
-    pub animated: bool,
+    pub emote: Emote,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+#[serde(tag = "type")]
+pub enum Emote {
+    Custom {
+        id: u64,
+        #[serde(default)]
+        animated: bool,
+    },
+    Unicode {
+        name: String,
+    },
 }
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct Discord {
     pub token: String,
     pub guilds: HashMap<String, Guild>,
-    pub reactions: HashMap<String, Emote>,
+    pub reactions: HashMap<String, Reaction>,
 }
 
 #[derive(Debug, Deserialize, Clone)]
