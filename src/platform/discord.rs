@@ -62,11 +62,11 @@ async fn event_handler(
 
                     if re.is_match(&msg.content) {
                         match &reaction.emote {
-                            crate::config::Emote::Custom { id, animated } => {
+                            crate::config::Emote::Custom { id, animated, name } => {
                                 Some(serenity::ReactionType::Custom {
                                     animated: *animated,
                                     id: serenity::EmojiId(*id),
-                                    name: None,
+                                    name: Some(name.to_string()),
                                 })
                             }
                             crate::config::Emote::Unicode { name } => {

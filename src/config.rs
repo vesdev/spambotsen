@@ -25,6 +25,7 @@ pub enum Emote {
         id: u64,
         #[serde(default)]
         animated: bool,
+        name: String,
     },
     Unicode {
         name: String,
