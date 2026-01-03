@@ -14,7 +14,7 @@ pub struct Config {
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct Reaction {
-    pub matches: Vec<String>,
+    pub matches: String,
     pub emote: Emote,
 }
 

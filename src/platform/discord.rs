@@ -7,6 +7,7 @@ use poise::{
     serenity_prelude::{self as serenity, GatewayIntents},
     EditTracker,
 };
+use regex::Regex;
 use tokio::sync::Mutex;
 
 use crate::{
@@ -45,37 +46,39 @@ async fn event_handler(
             .as_ref()
             .ok_or_eyre("Missing discord config!")?;
 
-        // ugly linear search but good enough for the usecase
+        // ugly linear search but good enough
         if let Some(Some((_, guild))) = msg
             .guild_id
             .map(|guild_id| config.guilds.iter().find(|g| g.1.id == guild_id.0))
         {
-            let msg_lowercase = msg.content.to_lowercase();
-            for word in msg_lowercase.split_whitespace() {
-                for reaction in config
-                    .reactions
-                    .iter()
-                    .filter(|reaction| guild.reactions.contains(reaction.0))
-                    .flat_map(|(_, reaction)| {
-                        let word = word.to_string();
-                        reaction.matches.contains(&word).then_some({
-                            match &reaction.emote {
-                                crate::config::Emote::Custom { id, animated } => {
-                                    serenity::ReactionType::Custom {
-                                        animated: *animated,
-                                        id: serenity::EmojiId(*id),
-                                        name: Some(word),
-                                    }
-                                }
-                                crate::config::Emote::Unicode { name } => {
-                                    serenity::ReactionType::Unicode(name.clone())
-                                }
+            for reaction in config
+                .reactions
+                .iter()
+                .filter(|reaction| guild.reactions.contains(reaction.0))
+                .flat_map(|(_, reaction)| {
+                    let Ok(re) = Regex::new(&reaction.matches) else {
+                        return None;
+                    };
+
+                    if re.is_match(&msg.content) {
+                        match &reaction.emote {
+                            crate::config::Emote::Custom { id, animated } => {
+                                Some(serenity::ReactionType::Custom {
+                                    animated: *animated,
+                                    id: serenity::EmojiId(*id),
+                                    name: None,
+                                })
                             }
-                        })
-                    })
-                {
-                    msg.react(ctx, reaction).await?;
-                }
+                            crate::config::Emote::Unicode { name } => {
+                                Some(serenity::ReactionType::Unicode(name.clone()))
+                            }
+                        }
+                    } else {
+                        None
+                    }
+                })
+            {
+                msg.react(ctx, reaction).await?;
             }
 
             if msg.author.bot {
@@ -83,16 +86,23 @@ async fn event_handler(
             }
 
             for response in guild.responses.iter().flat_map(|response| {
-                msg.content
-                    .contains(response.0)
-                    .then(|| match response.1.as_str() {
-                        "<forsen line>" => user_data.forsen_lines.get_random(),
-                        _ => response.1.clone(),
-                    })
+                let Ok(re) = Regex::new(response.0) else {
+                    return None;
+                };
+
+                if re.is_match(&msg.content) {
+                    match response.1.as_str() {
+                        "<forsen line>" => Some(user_data.forsen_lines.get_random()),
+                        _ => Some(response.1.clone()),
+                    }
+                } else {
+                    None
+                }
             }) {
                 msg.channel_id.say(&ctx.http, response).await?;
             }
 
+            // bridge
             let from = ChannelId::Discord {
                 id: msg.channel_id.0,
             };
