@@ -180,7 +180,14 @@ pub async fn run(config: Arc<Config>, bridge: Arc<Bridge>, p: Platform) -> eyre:
                         match ev.ev {
                             Event::SendMessage { name, text } => {
                                 poise::serenity_prelude::ChannelId(id)
-                                    .say(&http, format!("{name}: {text}"))
+                                    .say(
+                                        &http,
+                                        format!(
+                                            "{}: {}",
+                                            escape_discord_formatting(&name),
+                                            escape_discord_formatting(&text)
+                                        ),
+                                    )
                                     .await
                                     .unwrap();
                             }
@@ -197,4 +204,9 @@ pub async fn run(config: Arc<Config>, bridge: Arc<Bridge>, p: Platform) -> eyre:
     };
 
     Ok(())
+}
+
+fn escape_discord_formatting(input: &str) -> String {
+    let re = Regex::new(r"([\\*_~`|<>])").unwrap();
+    re.replace_all(input, "\\$1").to_string()
 }
